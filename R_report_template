@@ -1,0 +1,85 @@
+---
+date: '`r format(Sys.Date(), "%d\\. %m\\. %Y")`'  # today
+bibliography: references.bib
+link-citations: TRUE
+# fontfamily: lmodern
+fontsize: 12pt
+# geometry: margin=1.3in
+
+classoption:
+  - a4paper
+  - oneside
+numbersections: yes
+csquotes: TRUE
+
+title: "Classification Algorithms with MNIST Digits"
+#subtitle: "e"
+author: "Eric Smrkovsky"
+course: 'Statistical Programming and Data Analysis'
+field: Computer Science
+referee: 'Dr. Earvin Balderama'
+
+abstract: |
+  Yart provides an RMarkdown template for rendering TeX based PDFs. It provides a format suitable for academic settings. The typical RMarkdown variables may be used. In additiion, some variabels useful for academic reports have been added such as name of referee, due date, course title, field of study, addres of author, and logo, and a few more maybe. In addition, paper format (eg., paper size, margins) may be adjusted; the babel language set of Latex is supported. Those variables are defined in the yaml header of the yart document. Adjust those variables to your need. Note that citations, figure/ table referencing is possible due to the underlying pandoc magic. This template is not much more than setting some of the variables provided by rmarkdown (pandoc, knitr, latex, and more), credit is due to the original authors. Please reade the rmarkdown documentation for detailled information on how to use rmarkdown and how to change settings.
+
+output: 
+  pdf_document:
+    highlight: tango
+    latex_engine: xelatex
+    toc: no
+    toc_depth: 2
+  html_notebook:
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# My Section Header 1
+
+
+Please see the documentation of [RMarkdown](http://rmarkdown.rstudio.com/) for more details on how to write RMarkdown documents.
+
+
+
+## My Section Header 2
+
+
+"Lorem ipsum" dolor sit amet, consectetur adipiscing elit. Proin mollis
+dolor vitae tristique eleifend. Quisque non ipsum sit amet velit
+
+
+
+# R-Code
+
+So bindet man R-Code ein:
+
+```{r}
+x <- c(1,2,3)
+mean(x)
+```
+
+
+# Figures
+
+Use knit to insert images. Figures can be referenced, too.
+
+
+```{r fig1, echo = TRUE, eval = FALSE, fig.cap = "Example of a figure", out.width = "50%"}
+knitr::include_graphics("/docs/picture2.png")
+```
+
+
+
+# References
+
+[If some literature is cited, it appears here]
+
+<!-- These lines ensure references are set with hanging indents in PDF documents -->
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+
