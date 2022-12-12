@@ -1,0 +1,373 @@
+---
+date: '`r format(Sys.Date(), "%d\\. %m\\. %Y")`'  # today
+bibliography: references.bib
+link-citations: TRUE
+# fontfamily: lmodern
+fontsize: 12pt
+# geometry: margin=1.3in
+
+classoption: conference # eg draftcls conference
+papersize: a4paper
+# leave these below options as-is unless you know what you're doing.
+#natbib: yes
+#documentclass: IEEEtran
+numbersections: yes
+csquotes: TRUE
+
+title: "TensorFlow with R"
+#subtitle: "e"
+author: "Eric Smrkovsky"
+course: 'Statistical Programming and Data Analysis'
+field: Computer Science
+referee: 'Dr. Earvin Balderama'
+
+#abstract: |
+#  Pending.
+
+output: 
+  pdf_document:
+    highlight: tango
+    toc: no
+    toc_depth: 2
+  html_notebook:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The computer's ability to process and analyze data has been developing for about 70 years. Today, we recognize Machine Learning (ML) as an essential sub-field of Artificial Intelligence (AI), allowing computers to make decisions based on the data given as input to ML algorithms. Supervised ML typically creates a function from labeled training data to be used for some validation task with unlabeled data. Many scientists and engineers use supervised learning for practical tasks, scientific studies, and data analysis. Some examples include: analyzing the brain's electrical activity through signal processing, speech recognition, natural language processing, and computer vision[@das2015applications]. 
+
+Moving farther down the rabbit hole, deep learning is a sub-field of machine learning that uses artificial neural networks. Typically scientists think of a neural network as a collection of nodes that models the neurons found in the brain. This report is meant to serve as an introduction to the R package version of one the most popular AI Python libraries, TensorFlow. Included in this report is an introduction to the functionality within the TensorFlow package, and a tutorial on the implementation of a simple neural network using the MNIST database as input. This document is designed to be reproducible so that you can start from scratch by executing the code snippets within your local RStudio environment. The source code for this document can serve as a template for creating RMarkdown reports and can be found here:.      
+
+# TensorFlow R Package
+  
+TensorFlow is a deep learning library created by Google offering high and low-level capabilities for deploying deep learning models. Keras is used to define neural networks and runs on top of TensorFlow, essentially using the easy programming interface of Keras to build the model then TensorFlow does all the work executing the model. TensorFlow uses multidimensional arrays (Tensors) for all mathematical operations and machine learning operations. 
+
+## Installation of TensorFlow and Keras package
+
+You will need to have R, RStudio and Python installed on your computer.
+
+For R and RStudio, the installation is found here: 
+https://posit.co/download/rstudio-desktop/
+
+For Python the latest version can be found here:
+https://www.python.org/downloads/
+
+Running the following code will set you up to start working with TensorFlow in RStudio.
+```{r, eval=FALSE}
+install.packages("keras")
+library(keras)
+install_keras(envname = "r-reticulate")
+library(tensorflow)
+```
+
+```{r, include = FALSE, message = FALSE} 
+library(keras)
+library(tensorflow)
+```
+
+You can check to see if you were successful with your installation tasks by running the following code chunk.
+
+```{r, eval=FALSE}
+tf$constant("Hello Tensorflow!")
+```
+
+## Tensors, Variables, and Graphs
+
+### Tensors
+
+A "Tensor" in TensorFlow are immutable (can not be changed) objects with a uniform type. Here are some examples of the different data type of Tensors.  
+
+```{r}
+names(tf$dtypes)
+```
+
+The structure of a Tensor is described as it's shape and has the following features:  
+* Dimension  
+* Rank  
+* Axis  
+* Size  
+
+A Tensor's rank describes the number of dimensions of the Tensor. 
+The shape of the Tensor is the number of elements in each dimension.
+The axis is the particular dimension.
+The size is the total number of elements within the Tensor.
+
+Here is an example of a scalar, a vector, and a 2 dimensional matrix. 
+
+```{r}
+aScalar <- as_tensor(32, dtype = "int32")
+aVector <- as_tensor(c(45:50), dtype = "int32")
+aMatrix2 <- as_tensor(rbind(c(51, 52), 
+                            c(53, 54), 
+                            c(55, 56)), dtype = "float64")
+print(aScalar)
+print(aVector)
+print(aMatrix2)
+```
+
+Tensors can be used for a wide range of mathematical operations. For example, we can divide a vector by a scalar. 
+```{r}
+aDevProblem <- tf$math$divide(aVector,aScalar)
+print(aDevProblem)
+```
+After the computation we convert to an array to view the results without the shape properties being shown. 
+```{r}
+as.array(aDevProblem)
+```
+There are plenty of other mathematical operations that can be done with Tensors including some that are very specific to deep learning tasks. For example in our neural network example below the final layer of the model is the softmax layer which is a complex computation that is simplified by TensorFlow. 
+```{r}
+tf$nn$softmax(aMatrix2)
+```
+
+### Variables
+
+A variable in TensorFlow is a data structure that has a Tensor at it's core and acts just like a Tensor. A variable has it's own shape, dtype etc. Variables are used to share and access a persistent state within the program.
+```{r}
+aMatrix2_variable <- tf$Variable(aMatrix2)
+```
+
+Most mathematical operations work on variables as well.
+```{r}
+tf$nn$softmax(aMatrix2_variable)
+```
+
+### Graphs
+
+TensorFlow graphs provides an ability to encapsulate R functions and export them for use elsewhere such as other programs. Using 'tf_function()' is very similar to using the R 'function()' except that 'function()' is eagerly executed and 'tf_function()' uses graph execution. Graph execution allows TensorFlow to run more efficiently by only executing lines of code once when the line isn't needed to be ran dynamically. Here is an example of a running a 'function()'.
+
+```{r}
+# R function
+aFunction <- function(x,y) {
+  message('Do Division')
+  tf$math$divide(x,y)
+}
+```
+
+Here is an example of using a 'tf_function()' as a wrapper for 'aFunction'.
+
+```{r}
+# TensorFlow function
+graphFunction <- tf_function(aFunction)
+```
+
+We create two Tensors and test these functions.
+```{r}
+xTest <- as_tensor(1:2, "int32", shape = c(1, 2))
+yTest <- as_tensor(2:3, "int32", shape = c(2, 1))
+aFunction(xTest,yTest)
+```
+
+```{r}
+graphFunction(xTest,yTest)
+```
+
+As you can see, the results from these functions are the same and this is to be expected. So what makes them different? The print statement is something that can only be executed once as that line of code is not needed for the function to perform it's operation. Let's execute the functions again.
+
+```{r}
+aFunction(xTest,yTest)
+```
+
+```{r}
+graphFunction(xTest,yTest)
+```
+
+We find that the print statement only runs the first time for the graph execution while it runs twice during eager execution. Imagine if there was 50 lines of code generating a neural network that could be executed once and encapsulated into a Tensor graph? 
+
+That is the POWER of TensorFlow. 
+
+The above simple division function generates the following graph structure. Please review this hierarchy and see if you can understand the graph structure, it's attributes, what hard coded operations are accessed?  
+
+```{r}
+graphFunction$get_concrete_function(as_tensor(10),as_tensor(2))$graph$as_graph_def()
+```
+
+
+# Neural Network using Keras
+
+Keras is an Application Programming Interface used for building deep learning models and runs on-top of TensorFlow. Keras is known for being simple, flexible and powerful. Keras provides a way for data scientists to go from an idea to results quickly. The idea behind Keras is to build a model by stacking layers. The sequential model creates a linear stack of layers and the functional API creates a graph of many layers. While the Keras functional API is beyond the scope of this paper, we present an example of the sequential model below.
+
+## Keras Sequential Model Example
+  
+First, we load the MNIST database directly from the Keras package. This provides us with lists that include training and validation datasets that we will use to train the sequential model. Notice how we convert the example data from integers to floating-point numbers and normalize the pixel range. This changes the data points to show 0 to 1 rather than 0 to 255. 
+
+```{r, message = FALSE}
+db <- dataset_mnist()
+c(c(x_train, y_train), c(x_test, y_test)) %<-% db
+x_train <- x_train / 255
+x_test <-  x_test / 255
+```
+
+Now we have our data ready to go. We can use Keras to build a simple neural network. In the following code chunk, we create the layers in a "stack" for the sequential model. We define the input size to represent the two dimensional tensor filled with pixels.
+
+```{r}
+model <- keras_model_sequential(input_shape = c(28, 28)) %>%
+  layer_flatten() %>%
+  layer_dense(128, activation = "relu") %>%
+  layer_dropout(0.2) %>%
+  layer_dense(10)
+model
+```
+
+As you can see above we have created a model with some layers. First layer flattens the input. Second layer adds a densely connected layer of size 28 by 28 and utilizes an activation function. Third layer provides dropout for the input preventing overfitting. Finally we combine some results with the final layer.     
+
+Next we need to make some predictions to evaluate the model with. The following code chunk creates the probabilities for each class and stores them in a tensor.
+
+```{r}
+predictions <- predict(model, x_train[1:2, , ])
+tf$nn$softmax(predictions)
+```
+
+The following code chunk creates a loss function and set the hyper parameters. The loss function used takes our probabilities and the ground truth associated with the examples and returns the loss. Next we set the optimizer to adam and set the metrics parameter to accuracy.
+
+```{r}
+loss_fn <- loss_sparse_categorical_crossentropy(from_logits = TRUE)
+loss_fn(y_train[1:2], predictions)
+
+model %>% compile(
+  optimizer = "adam",
+  loss = loss_fn,
+  metrics = "accuracy"
+)
+```
+
+Finally we can fit the model to the data and determine the accuracy of our neural network.
+
+```{r}
+model %>% fit(x_train, y_train, epochs = 5)
+model %>% evaluate(x_test,  y_test, verbose = 2)
+```
+
+
+
+# The MNIST Database
+
+The data used for training and classification is the famous Modified National Institute of Standards and Technology (MNIST) database. The MNIST database was created in 1994 and released to the public in 1998 with the copyright held by Dr. Yann LeCun and Dr. Corinna Cortes[@lecun2010mnist]. The MNIST database was constructed during a study by LeCun and colleagues regarding document recognition using various machine learning techniques[@LecunY1998Glat]. The database eventually became the standard test for pattern recognition algorithms. The database consists of 60,000 training and 10,000 test images, containing 28 rows and 28 columns of black-and-white pixels that form handwritten digits. A review where sixty-eight machine learning classifiers were evaluated with the database found that neural net classifiers perform significantly better than other classifiers[@6296535]. Below you see an example of some pixel data followed by images containing accurate representations of MNIST digits. Code for this can be found in the appendix. This code uses a smaller MNIST database found here: https://www.kaggle.com/competitions/digit-recognizer/data?select=train.csv   
+
+```{r, include = FALSE}
+## Load appropriate packages
+library(knitr)
+library(rlang)
+library(tidyverse) #ggplot2 dplyr tidyr readr
+```
+
+```{r, echo = FALSE}
+## Load the training data 
+setwd("G:/My Drive/105/MNIST_Project")# choose folder where data is stored 
+train <- read.csv("data/train.csv")   # retrieve training data from local
+cols <- c(1,124:129)                  # columns to view
+kable(train[1:10,cols])               # show 10 rows of columns 1, 124-129
+```
+
+```{r, echo = FALSE}
+## View an example: number 7 
+seven <- matrix(unlist(train[7,-1]),nrow = 28,byrow = T)
+im <- t(apply(seven, 2, rev)) 
+image(x = 1:28, 
+      y = 1:28, 
+      z = im,
+      main = "Lucky 7: 784 Pixels",
+      xlab = "28 Pixel Width",
+      ylab = "28 Pixel Height")
+```
+
+
+```{r, echo = FALSE}
+## Algorithm to View a 10 by 10 matrix filled with examples
+set.seed(15)
+data <- sample(as.integer(row.names(train)),100)# get 100 image examples 
+par(mfrow=c(10,10),mar=c(0.1,0.1,0.1,0.1)) # multiple graphs in a single plot
+
+for (imageSample in data){  # for each image collect it's pixels and display
+  row <- NULL
+  for (pixel in 2:785)      # each image has 784 pixels                     
+    row[pixel-1] <- train[imageSample,pixel] # store pixels for current example
+  
+  matrix1 <- matrix(row,28,28,byrow=FALSE)   # stores pixels backwards    
+  matrix2 <- matrix(rep(0,784),28,28)        # blank matrix to reorder pixels
+  
+  for (i in 1:28)
+    for (j in 1:28)                          # reorder the columns into matrix2
+      matrix2[i,28-j+1] <- matrix1[i,j]
+  
+  image(matrix2, axes=FALSE)                 # show numbers 
+}
+rm(i,pixel,j,imageSample,row,matrix1,matrix2, cols, im, seven) # cleanup
+```
+
+
+x \# Figures
+
+Use knit to insert images. Figures can be referenced, too.
+
+```{r fig1, echo = TRUE, eval = FALSE, fig.cap = "Example of a figure", out.width = "50%"}
+knitr::include_graphics("/docs/picture2.png")
+```
+
+# Conclusion
+
+asasas
+
+# Appendix
+
+## Code to Display Mnist Digits
+
+
+```{r, eval=FALSE}
+## Load the training data 
+setwd("G:/My Drive/105/MNIST_Project")# choose folder where data is stored 
+train <- read.csv("data/train.csv")   # retrieve training data from local
+cols <- c(1,124:129)                  # columns to view
+kable(train[1:10,cols])               # show 10 rows of columns 1, 124-129
+```
+
+
+```{r, eval=FALSE}
+## View an example: number 7 
+seven <- matrix(unlist(train[7,-1]),nrow = 28,byrow = T)
+im <- t(apply(seven, 2, rev)) 
+image(x = 1:28, 
+      y = 1:28, 
+      z = im,
+      main = "Lucky 7: 784 Pixels",
+      xlab = "28 Pixel Width",
+      ylab = "28 Pixel Height")
+```
+
+
+```{r, eval=FALSE}
+## Algorithm to View a 10 by 10 matrix filled with examples
+set.seed(15)
+data <- sample(as.integer(row.names(train)),100)# get 100 image examples 
+par(mfrow=c(10,10),mar=c(0.1,0.1,0.1,0.1)) # multiple graphs in a single plot
+
+for (imageSample in data){  # for each image collect it's pixels and display
+  row <- NULL
+  for (pixel in 2:785)      # each image has 784 pixels                     
+    row[pixel-1] <- train[imageSample,pixel] # store pixels for current example
+  
+  matrix1 <- matrix(row,28,28,byrow=FALSE)   # stores pixels backwards    
+  matrix2 <- matrix(rep(0,784),28,28)        # blank matrix to reorder pixels
+  
+  for (i in 1:28)
+    for (j in 1:28)                          # reorder the columns into matrix2
+      matrix2[i,28-j+1] <- matrix1[i,j]
+  
+  image(matrix2, axes=FALSE)                 # show numbers 
+}
+rm(i,pixel,j,imageSample,row,matrix1,matrix2, cols, im, seven) # cleanup
+```
+
+
+# Bibliography
+<!-- These lines ensure references are set with hanging indents in PDF documents -->
+
+```{=tex}
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+```
+
